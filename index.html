@@ -3,7 +3,8 @@
 <head>
     <title>速算练习</title>
     <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.min.js"></script>
-<!--    <script src="https://unpkg.com/vue/dist/vue.js"></script>-->
+<!--    <script src="https://cdn.bootcdn.net/ajax/libs/fastclick/1.0.6/fastclick.js"></script>-->
+    <!--    <script src="https://unpkg.com/vue/dist/vue.js"></script>-->
     <style>
         html, body {
             margin: unset;
@@ -27,6 +28,7 @@
             background-color: #267dba;
             text-align: center;
             font-size: 35px;
+            user-select:none;
         }
 
         .keybord-inner {
@@ -42,7 +44,7 @@
             display: inline-block;
         }
 
-        .keybord-button {
+        .keybord_button {
             /*padding: 2px;*/
             line-height: 66px;
             margin: 2px;
@@ -50,6 +52,11 @@
             background-color: #daecee;
             box-sizing: border-box;
             border-radius: 5px;
+        }
+
+        .keybord_button_size {
+            transform: scale(0.95);
+            background-color: #b7c9cb;
         }
 
         .main {
@@ -103,6 +110,7 @@
             height: 31px;
             width: 25%;
         }
+
     </style>
 </head>
 <body>
@@ -138,22 +146,29 @@
         <div class="question" v-show="currentIndex==questionList.length-1"></div>
     </div>
     <div style="width: 100%;text-align: center;margin-top: 140px;" v-show="step===0">
-        <div style="margin:auto;width: 200px;height: 60px;background-color: #267dba;color: white;border-radius: 5px;font-size: 28px;text-align: center;line-height: 60px;" @click="begin">开始答题</div>
+        <div style="margin:auto;width: 200px;height: 60px;background-color: #267dba;color: white;border-radius: 5px;font-size: 28px;text-align: center;line-height: 60px;"
+             @touchstart="begin">开始答题
+        </div>
     </div>
 
     <div id="keybord" v-show="step===1">
         <div class="keybord-inner">
-            <div class="keybord-item" v-for="item in [7,8,9,'C',4,5,6,0,1,2,3,'←']" :key="item">
-                <div class="keybord-button" @click="inputNum(item)">{{item}}</div>
+            <div class="keybord-item" v-for="item,index in [7,8,9,'C',4,5,6,'←',1,2,3,'上题']" :key="item">
+                <div :class="{keybord_button:1,keybord_button_size:btnList[index]}" @touchstart="inputNum(item,index)" @touchend="touchEnd(index)">{{item}}</div>
             </div>
             <div class="keybord-item" style="width: 50%">
-                <div class="keybord-button" @click="pre()">上题</div>
+                <div :class="{keybord_button:1,keybord_button_size:btnList[12]}"
+                     @touchstart="inputNum(0,12)"
+                     @touchend="touchEnd(12)">0</div>
             </div>
             <div class="keybord-item" style="width: 50%">
-                <div v-if="currentIndex === questionList.length-1" class="keybord-button" @click="submit()"
+                <div v-if="currentIndex === questionList.length-1"
+                     :class="{keybord_button:1,keybord_button_size:btnList[13]}"
+                     @touchstart="inputNum('交卷',13)"
+                     @touchend="touchEnd(13)"
                      style="background-color: #ffa22c">交卷
                 </div>
-                <div v-else class="keybord-button" @click="next()">下题</div>
+                <div v-else :class="{keybord_button:1,keybord_button_size:btnList[14]}" @touchstart="inputNum('下题',14)" @touchend="touchEnd(14)">下题</div>
             </div>
         </div>
     </div>
@@ -238,6 +253,7 @@
     new Vue({
         el: '#app',
         data: {
+            btnList:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
             startTime: null,
             time: '00: 00',
             type: 1,
@@ -249,7 +265,7 @@
             questionList: [],
             timeRet: [],
             errRet: [],
-            errList:[]
+            errList: []
         },
         created() {
 
@@ -289,11 +305,17 @@
                 // 4：三位数加20组 1.5min  5：三位数减20组 1.5min  6：五位数/两位数商首位口算 20组 1min   7：五位数/三位数商两位笔算 20组 4min
                 let list = [];
                 for (let i = 0; i < 40; i++) {
-                    list.push({tag:'×',one:parseInt(Math.random() * 90 + 10),two:parseInt(Math.random() * 8 + 2),answer:null,type:1})
+                    list.push({
+                        tag: '×',
+                        one: parseInt(Math.random() * 90 + 10),
+                        two: parseInt(Math.random() * 8 + 2),
+                        answer: null,
+                        type: 1
+                    })
                 }
                 for (let i = 0; i < 20; i++) {
                     list.push({
-                        tag:'+',
+                        tag: '+',
                         one: parseInt(Math.random() * 90 + 10),
                         two: parseInt(Math.random() * 90 + 10),
                         answer: null,
@@ -301,19 +323,49 @@
                     })
                 }
                 for (let i = 0; i < 20; i++) {
-                    list.push({tag:'-',one:parseInt(Math.random() * 90 + 10),two:parseInt(Math.random() * 90 + 10),answer:null,type:3})
+                    list.push({
+                        tag: '-',
+                        one: parseInt(Math.random() * 90 + 10),
+                        two: parseInt(Math.random() * 90 + 10),
+                        answer: null,
+                        type: 3
+                    })
                 }
                 for (let i = 0; i < 20; i++) {
-                    list.push({tag:'+',one:parseInt(Math.random() * 900 + 100),two:parseInt(Math.random() * 900 + 100),answer:null,type:4})
+                    list.push({
+                        tag: '+',
+                        one: parseInt(Math.random() * 900 + 100),
+                        two: parseInt(Math.random() * 900 + 100),
+                        answer: null,
+                        type: 4
+                    })
                 }
                 for (let i = 0; i < 20; i++) {
-                    list.push({tag:'-',one:parseInt(Math.random() * 900 + 100),two:parseInt(Math.random() * 900 + 100),answer:null,type:5})
+                    list.push({
+                        tag: '-',
+                        one: parseInt(Math.random() * 900 + 100),
+                        two: parseInt(Math.random() * 900 + 100),
+                        answer: null,
+                        type: 5
+                    })
                 }
                 for (let i = 0; i < 20; i++) {
-                    list.push({tag:'÷',one:parseInt(Math.random() * 90000 + 10000),two:parseInt(Math.random() * 90 + 10),answer:null,type:6})
+                    list.push({
+                        tag: '÷',
+                        one: parseInt(Math.random() * 90000 + 10000),
+                        two: parseInt(Math.random() * 90 + 10),
+                        answer: null,
+                        type: 6
+                    })
                 }
                 for (let i = 0; i < 20; i++) {
-                    list.push({tag:'÷',one:parseInt(Math.random() * 90000 + 10000),two:parseInt(Math.random() * 900 + 100),answer:null,type:7})
+                    list.push({
+                        tag: '÷',
+                        one: parseInt(Math.random() * 90000 + 10000),
+                        two: parseInt(Math.random() * 900 + 100),
+                        answer: null,
+                        type: 7
+                    })
                 }
                 this.questionList = list;
             },
@@ -342,6 +394,7 @@
                 this.currentNum = this.questionList[this.currentIndex].answer;
             },
             next() {
+                console.log(1)
                 if (this.step !== 1) return;
                 if (this.currentIndex >= this.questionList.length - 1) return;
                 this.currentIndex++;
@@ -358,9 +411,29 @@
                 this.typeTime = now;
                 this.timeRet[this.type] = t;
             },
-            inputNum(num) {
+            setBtnList(index,value) {
+                let tmp = this.btnList;
+                this.btnList[index] = 1;
+                this.btnList = null;
+                this.btnList = tmp;
+            },
+            touchEnd(index){
+                this.setBtnList(index,0);
+                this.btnList[index] = 0;
+            },
+            inputNum(num, index) {
+                this.setBtnList(index,1);
                 if (this.step !== 1) return;
-                if (num === '←') {
+                if (num === '交卷') {
+                    this.submit();
+                    return;
+                } else if (num === '上题') {
+                    this.pre();
+                    return;
+                } else if (num === '下题') {
+                    this.next();
+                    return;
+                } else if (num === '←') {
                     let n = this.currentNum;
                     if (n !== null && n > 9) {
                         n = n.toString();
