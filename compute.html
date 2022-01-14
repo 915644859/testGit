@@ -1,0 +1,385 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">
+<html>
+<head>
+    <title>速算练习</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.min.js"></script>
+<!--    <script src="https://unpkg.com/vue/dist/vue.js"></script>-->
+    <style>
+        html, body {
+            margin: unset;
+            height: 100%;
+        }
+
+        #app {
+            /*font-size: 38px;*/
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #keybord {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            z-index: 3;
+            width: 100%;
+            height: 300px;
+            background-color: #267dba;
+            text-align: center;
+            font-size: 35px;
+        }
+
+        .keybord-inner {
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .keybord-item {
+            width: 25%;
+            height: 70px;
+            display: inline-block;
+        }
+
+        .keybord-button {
+            /*padding: 2px;*/
+            line-height: 66px;
+            margin: 2px;
+            /*line-height: 70px;*/
+            background-color: #daecee;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+
+        .main {
+            position: fixed;
+            width: 100%;
+            left: 0;
+            top: calc(50% - 345px);
+            z-index: 1;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .header {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 3;
+            font-size: 28px;
+            width: 100%;
+            line-height: 70px;
+            height: 70px;
+            text-align: center;
+            background-color: #267dba;
+            color: white;
+        }
+
+        .question {
+            height: 31px;
+            padding: 30px 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .currentQuestion {
+            background-color: rgba(58, 169, 255, 0.25);
+        }
+
+        .question-no {
+            width: 18%;
+            font-size: 20px;
+            text-align: left;
+        }
+
+        .question-item {
+            width: 57%;
+        }
+
+        .question-answer {
+            position: relative;
+            height: 31px;
+            width: 25%;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="header">
+        <span style="padding-left: 20px;float: left;">{{currentIndex + 1}} / {{questionList.length}}</span>
+        <span style="float:right;padding-right: 20px;">{{time}}</span>
+    </div>
+    <div class="main" v-show="step===1">
+        <div class="question" v-show="currentIndex==0"></div>
+        <div class="question" v-show="currentIndex<=1"></div>
+        <div v-for="item,index in questionList" :key="index"
+             :class="{question:true,currentQuestion:index===currentIndex}"
+             v-show="isShowQuestion(index)">
+            <div class="question-no">
+                <span v-if="item.type===1">乘</span>
+                <span v-else-if="item.type===2">加</span>
+                <span v-else-if="item.type===3">减</span>
+                <span v-else-if="item.type===4">加</span>
+                <span v-else-if="item.type===5">减</span>
+                <span v-else-if="item.type===6">商一位</span>
+                <span v-else>商两位</span>
+            </div>
+            <div class="question-item">
+                <span>{{item.one}}{{item.tag}}{{item.two}}</span> =
+            </div>
+            <div class="question-answer">
+                {{item.answer}}
+                <div style="width: 100%;border-bottom: 1px solid black;position: absolute;left: 0;bottom: 0;"></div>
+            </div>
+        </div>
+        <div class="question" v-show="currentIndex>=questionList.length-2"></div>
+        <div class="question" v-show="currentIndex==questionList.length-1"></div>
+    </div>
+    <div style="width: 100%;text-align: center;margin-top: 140px;" v-show="step===0">
+        <div style="margin:auto;width: 200px;height: 60px;background-color: #267dba;color: white;border-radius: 5px;font-size: 28px;text-align: center;line-height: 60px;" @click="begin">开始答题</div>
+    </div>
+
+    <div id="keybord" v-show="step===1">
+        <div class="keybord-inner">
+            <div class="keybord-item" v-for="item in [7,8,9,'C',4,5,6,0,1,2,3,'←']" :key="item">
+                <div class="keybord-button" @click="inputNum(item)">{{item}}</div>
+            </div>
+            <div class="keybord-item" style="width: 50%">
+                <div class="keybord-button" @click="pre()">上题</div>
+            </div>
+            <div class="keybord-item" style="width: 50%">
+                <div v-if="currentIndex === questionList.length-1" class="keybord-button" @click="submit()"
+                     style="background-color: #ffa22c">交卷
+                </div>
+                <div v-else class="keybord-button" @click="next()">下题</div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="step===2" style="margin-top: 120px">
+        <table style="width: 100%;text-align: center;">
+            <tr>
+                <th>题型</th>
+                <th>题数</th>
+                <th>错题</th>
+                <th>限时（秒）</th>
+                <th>用时（秒）</th>
+            </tr>
+            <tr>
+                <td>两位数乘一位数</td>
+                <td>40</td>
+                <td>{{errRet[1]}}</td>
+                <td>90</td>
+                <td>{{timeRet[1]}}</td>
+            </tr>
+            <tr>
+                <td>两位数加两位数</td>
+                <td>20</td>
+                <td>{{errRet[2]}}</td>
+                <td>60</td>
+                <td>{{timeRet[2]}}</td>
+            </tr>
+            <tr>
+                <td>两位数减两位数</td>
+                <td>20</td>
+                <td>{{errRet[3]}}</td>
+                <td>60</td>
+                <td>{{timeRet[3]}}</td>
+            </tr>
+            <tr>
+                <td>三位数加三位数</td>
+                <td>20</td>
+                <td>{{errRet[4]}}</td>
+                <td>90</td>
+                <td>{{timeRet[4]}}</td>
+            </tr>
+            <tr>
+                <td>三位数减三位数</td>
+                <td>20</td>
+                <td>{{errRet[5]}}</td>
+                <td>90</td>
+                <td>{{timeRet[5]}}</td>
+            </tr>
+            <tr>
+                <td>五位数除以两位数</td>
+                <td>20</td>
+                <td>{{errRet[6]}}</td>
+                <td>60</td>
+                <td>{{timeRet[6]}}</td>
+            </tr>
+            <tr>
+                <td>五位数除以三位数</td>
+                <td>20</td>
+                <td>{{errRet[7]}}</td>
+                <td>240</td>
+                <td>{{timeRet[7]}}</td>
+            </tr>
+        </table>
+
+        <div style="margin: 30px auto 10px;width: 100px;text-align: center;font-size: 25px;">错题集</div>
+        <table style="width: 80%;margin: auto;text-align: center">
+            <tr>
+                <th>题目</th>
+                <th>答案</th>
+                <th>你的</th>
+            </tr>
+            <tr v-for="item,index in errList" :key="index">
+                <td>{{item.one}}{{item.tag}}{{item.two}}</td>
+                <td>{{item.trueAns}}</td>
+                <td style="color: red">{{item.answer}}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    new Vue({
+        el: '#app',
+        data: {
+            startTime: null,
+            time: '00: 00',
+            type: 1,
+            typeTime: 0,
+            timer: null,
+            step: 0,
+            currentNum: null,
+            currentIndex: 0,
+            questionList: [],
+            timeRet: [],
+            errRet: [],
+            errList:[]
+        },
+        created() {
+
+        },
+        methods: {
+            submit() {
+                clearInterval(this.timer);
+                this.getEndTime(); //结算类型用时
+                this.check();
+                this.step = 2;
+            },
+            check() {
+                this.errRet = [0, 0, 0, 0, 0, 0, 0, 0];
+                this.errList = [];
+                this.questionList.forEach(it => {
+                    let t;
+                    if (it.type === 1) {
+                        t = it.one * it.two;
+                    } else if (it.type === 2 || it.type === 4) {
+                        t = it.one + it.two;
+                    } else if (it.type === 3 || it.type === 5) {
+                        t = it.one - it.two;
+                    } else if (it.type === 6) {
+                        t = parseInt(Math.floor(it.one / it.two).toString().substr(0, 1));
+                    } else {
+                        t = parseInt(Math.floor(it.one / it.two).toString().substr(0, 2));
+                    }
+                    if (t !== it.answer) {
+                        this.errRet[it.type]++;
+                        it.trueAns = t;
+                        this.errList.push(it);
+                    }
+                });
+            },
+            init() {
+                //type  1：两位数*一位数40组 1.5min  2：两位数加 20组 1min  3：两位数减 20组 1min
+                // 4：三位数加20组 1.5min  5：三位数减20组 1.5min  6：五位数/两位数商首位口算 20组 1min   7：五位数/三位数商两位笔算 20组 4min
+                let list = [];
+                for (let i = 0; i < 40; i++) {
+                    list.push({tag:'×',one:parseInt(Math.random() * 90 + 10),two:parseInt(Math.random() * 8 + 2),answer:null,type:1})
+                }
+                for (let i = 0; i < 20; i++) {
+                    list.push({
+                        tag:'+',
+                        one: parseInt(Math.random() * 90 + 10),
+                        two: parseInt(Math.random() * 90 + 10),
+                        answer: null,
+                        type: 2
+                    })
+                }
+                for (let i = 0; i < 20; i++) {
+                    list.push({tag:'-',one:parseInt(Math.random() * 90 + 10),two:parseInt(Math.random() * 90 + 10),answer:null,type:3})
+                }
+                for (let i = 0; i < 20; i++) {
+                    list.push({tag:'+',one:parseInt(Math.random() * 900 + 100),two:parseInt(Math.random() * 900 + 100),answer:null,type:4})
+                }
+                for (let i = 0; i < 20; i++) {
+                    list.push({tag:'-',one:parseInt(Math.random() * 900 + 100),two:parseInt(Math.random() * 900 + 100),answer:null,type:5})
+                }
+                for (let i = 0; i < 20; i++) {
+                    list.push({tag:'÷',one:parseInt(Math.random() * 90000 + 10000),two:parseInt(Math.random() * 90 + 10),answer:null,type:6})
+                }
+                for (let i = 0; i < 20; i++) {
+                    list.push({tag:'÷',one:parseInt(Math.random() * 90000 + 10000),two:parseInt(Math.random() * 900 + 100),answer:null,type:7})
+                }
+                this.questionList = list;
+            },
+            isShowQuestion(index) {
+                return Math.abs(index - this.currentIndex) < 3;
+            },
+            begin() {
+                this.init();
+                this.startTime = new Date().getTime();
+                this.typeTime = this.startTime;
+                let that = this;
+                this.timer = setInterval(function () {
+                    let t = Math.floor((new Date().getTime() - that.startTime) / 1000);
+                    let sec = t % 60;
+                    let m = Math.floor(t / 60);
+                    if (sec < 10) sec = '0' + sec;
+                    if (m < 10) m = '0' + m;
+                    that.time = '' + m + ': ' + sec;
+                }, 1000);
+                this.step = 1;
+            },
+            pre() {
+                if (this.step !== 1) return;
+                if (this.currentIndex <= 0) return;
+                this.currentIndex--;
+                this.currentNum = this.questionList[this.currentIndex].answer;
+            },
+            next() {
+                if (this.step !== 1) return;
+                if (this.currentIndex >= this.questionList.length - 1) return;
+                this.currentIndex++;
+                let next = this.questionList[this.currentIndex];
+                this.currentNum = next.answer;
+                if (next.type > this.type) { //进入下一个类型时，结算
+                    this.getEndTime();
+                    this.type = next.type;
+                }
+            },
+            getEndTime() {
+                let now = new Date().getTime();
+                let t = Math.round((now - this.typeTime) / 1000);
+                this.typeTime = now;
+                this.timeRet[this.type] = t;
+            },
+            inputNum(num) {
+                if (this.step !== 1) return;
+                if (num === '←') {
+                    let n = this.currentNum;
+                    if (n !== null && n > 9) {
+                        n = n.toString();
+                        this.currentNum = parseInt(n.substring(0, n.length - 1));
+                    } else {
+                        this.currentNum = null;
+                    }
+                } else if (num === 'C') {
+                    this.currentNum = null;
+                } else {
+                    let n = this.currentNum;
+                    if (n === null) n = '';
+                    n = '' + n + num;
+                    this.currentNum = parseInt(n);
+                }
+                this.questionList[this.currentIndex].answer = this.currentNum;
+            }
+        }
+    })
+</script>
+</body>
+</html>
